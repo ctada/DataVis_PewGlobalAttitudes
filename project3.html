@@ -7,7 +7,7 @@
 
     <!-- load D3 library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <style>
 
 text {
@@ -57,17 +57,19 @@ span.top-align {
   <body>
 
     <div>
+        <div>
+          <button type="button" class="btn btn-primary"id="button_q30">Will China replace US?</button>
+          <button type="button" class="btn btn-primary"id="button_q120">Is US enemy of China?</button>
+          <button type="button" class="btn btn-primary"id="button_q84">Moral Questions</button>
+        </div>
+    
     <span>
-	<span class="top-align">Country:</span>
-	<select class="filter" id="select-country" multiple></select>
-	<!-- <span class="top-align">:</span>
-	<select class="filter" id="select-age" multiple></select>
-	<span  class="top-align">Race:</span>
-	<select class="filter" id="select-race" multiple></select>
-	<span class="top-align">Base:</span>
-	<span class="top-align" id="span-base"></span> -->
-      </span>
+	     <span class="top-align">Country:</span>
+	     <select class="filter" id="select-country" multiple></select>
+    </span>
+    
     </div>
+    
     <div>
     <svg id="viz" height="500" width="800" style="border: 1px solid grey;">
     </svg>
@@ -79,71 +81,79 @@ span.top-align {
 window.addEventListener("load",run);
       
 function run () {
-    initializeView();
-    // get data, call f when done
-    getDataRows(function(data) {
+
+    button_q30.addEventListener("click",function() { runquestion30();});
+    button_q120.addEventListener("click",function() { runquestion120(); });
+    button_q84.addEventListener("click",function() { runquestion84() });
+}
+
+function runquestion30 (){
+  initializeView(ANSWERq30);
+   getDataRows(function(data) {
     populateSelectors(data);
-	setupEventListeners();
-	DATA.all = data;
-	updateData() });
+  setupEventListeners(updateDataq30);
+  DATAq30.all = data;
+  console.log(DATAq30);
+  updateDataq30() });
 }
 
+function runquestion120(){
+  initializeView(ANSWERq120);
+   getDataRows(function(data) {
+    populateSelectors(data);
+  setupEventListeners(updateDataq120);
+  DATAq120.all = data;
+  // console.log(DATAq120);
+  updateDataq120() });
+}
 
-function setupEventListeners () { 
+function setupEventListeners (updatewhichdata) { 
     d3.selectAll("select.filter")
-	.on("change",updateData)
+	.on("change",updatewhichdata)
 }
 
-var DATA = { all: []};
-
-var ANSWER = ["Has already replaced U.S.","Will eventually replace U.S.","Will never replace U.S."]
-// var SOCIAL_MEDIA = ["Facebook",
-// 		    "Pinterest",
-// 		    "Instagram",
-// 		    "LinkedIn",
-// 		    "Twitter"];
+var DATAq30 = { all: []};
+var DATAq120 = { all: []};
+var ANSWERq30 = ["Has already replaced U.S.","Will eventually replace U.S.","Will never replace U.S."]
+var ANSWERq120 = ["More of a partner","More of an enemy","Neither"]
 
 function populateSelectors (data) { 
     var country = d3.set();
     var q30 = d3.set();
-    // var q30 = d3.set();
-    // var races = d3.set();
-
+    var q120 = d3.set();
     data.forEach(function(r) {
-	// if(r.country === "China"){
-        // console.log(r.country)
-        country.add(r.COUNTRY);
+      country.add(r.COUNTRY);
 	    q30.add(r.Q30);
-    // }
+      q120.add(r.Q120);
     });
-    d3.select("#select-country")
+
+  d3.select("#select-country")
 	.selectAll("option")
-	.data(country.values().sort())
-    // .data(country.values())
+	.data(country.values()) //sort not needed
 	.enter()
 	.append("option")
 	.attr("value",function(d) { return d; })
     .property("selected",true)
 	.text(function(d) { return d;});
 
-    d3.select("#select-Q30")
+  d3.select("#select-Q30")
 	.selectAll("option")
-	.data(q30.values().sort())
+	.data(q30.values().sort)
 	.enter()
 	.append("option")
 	.attr("value",function(d) { return d; })
         .property("selected",true)
 	.text(function(d) { return d;});
 
- //    d3.select("#select-race")
-	// .selectAll("option")
-	// .data(races.values().sort())
-	// .enter()
-	// .append("option")
-	// .attr("value",function(d) { return d; })
- //        .property("selected",true)
-	// .text(function(d) { return d;});
-   
+  d3.select("#select-Q120")
+  .selectAll("option")
+  .data(q30.values().sort)
+  .enter()
+  .append("option")
+  .attr("value",function(d) { return d; })
+        .property("selected",true)
+  .text(function(d) { return d;});
+
 }
 
 function isSelected (selectorId,val) {
@@ -151,7 +161,7 @@ function isSelected (selectorId,val) {
 	.property("selected");
 }
 
-function initializeView () { 
+function initializeView (dataset) { 
 
     var svg = d3.select("#viz");
 
@@ -163,25 +173,20 @@ function initializeView () {
     var margin = 100;
     var chartHeight = height - 2*margin;
     var chartWidth = width - 2*margin;
+    var barWidth = chartWidth/(2*dataset.length-1);
 
-    // figure out the width of the bars so that all bars fit and 
-    //   there is one bar width between them
-    // note that every data point now has _2_ bars associated with 
-    //   it
-    var barWidth = chartWidth/(2*ANSWER.length-1);
-
-    svg.append("text")
+  svg.append("text")
 	.attr("class","title")
 	.attr("x",width/2)
  	.attr("y",margin/2)
 	.attr("dy","0.3em")
 	.style("text-anchor","middle");
 
-    sel = svg.selectAll("g")
-	.data(ANSWER)
+  sel = svg.selectAll("g")
+	.data(dataset)
 	.enter().append("g")
 
-    sel.append("rect")
+   sel.append("rect")
 	.attr("class","bar")
 	.attr("x",function(d,i) { return margin+(i*2)*barWidth; })
 	.attr("y",height-margin)
@@ -206,73 +211,50 @@ function initializeView () {
 
 
 
-function updateData () { 
-
-    console.log("UPDATING DATA");
-
+function updateDataq30 (numquestion) { 
+    console.log("UPDATING DATA", numquestion);
     var svg = d3.select("#viz");
 
     var height = svg.attr("height");
     var margin = 100;
     var chartHeight = height - 2*margin;
 
-    // var ANSWER = ["Has already replaced U.S.","Will eventually replace U.S.","Will never replace U.S.","Don't know","Refused"]
-    var ANSWER = ["Has already replaced U.S.","Will eventually replace U.S.","Will never replace U.S."]
-
     svg.select(".title")
 	.text("Country:" );
 
-    // crunch data
-    // tabulate totals for each company
-    // tabulate # of Yeses
- //    var COLUMN = 
-	// {"Facebook": "facebook",
-	//  "Pinterest": "pinterest",
-	//  "Instagram": "instagram",
-	//  "LinkedIn": "linkedin",
-	//  "Twitter": "twitter"}
     var counts = [0,0,0];
     var total_count = 0;
-    DATA.all.forEach(function(r) { 
-	if (isSelected("select-country",r.COUNTRY)){
-	    total_count += 1;
-        ANSWER.forEach(function(m,i) {
-        if(r.Q30 === m)
-        {
+
+       DATAq30.all.forEach(function(r) { 
+	     if (isSelected("select-country",r.COUNTRY)){
+	       total_count += 1;
+         ANSWERq30.forEach(function(m,i) {
+       if(r.Q30 === m){
             counts[i]+=1;
         }
         });
         }
         });
-
-    console.log(counts)
- //    if (r.Q30 === ANSWER[i])
- //    {
-
- //    }
-
-	// });
-
-    d3.select("#span-base")
+  d3.select("#span-base")
 	.text(total_count);
     
-    var yPos = d3.scale.linear()
+   var yPos = d3.scale.linear()
 	.domain([0,total_count])
 	.range([height-margin,margin]);
 
-    var height = d3.scale.linear()
+   var height = d3.scale.linear()
 	.domain([0,total_count])
 	.range([0,chartHeight]);
 
-    sel = svg.selectAll("g")
+   sel = svg.selectAll("g")
 	.data(counts);
 
-    sel.select(".bar")
+   sel.select(".bar")
 	.transition(2000)
 	.attr("y",function(d) { return yPos(d); })
 	.attr("height",function(d) { return height(d); });
 
-    sel.select(".value")
+   sel.select(".value")
 	.transition(2000)
 	.attr("y",function(d) { return yPos(d) - 20; })
 //	.text(function(d) { return (Math.round(100*d/total_count))+"%"; });
@@ -280,7 +262,56 @@ function updateData () {
 
 }		 
 
+function updateDataq120 () { 
+    console.log("UPDATING DATA");
+    var svg = d3.select("#viz");
 
+    var height = svg.attr("height");
+    var margin = 100;
+    var chartHeight = height - 2*margin;
+
+   svg.select(".title")
+   .text("Is US enemy of China?" );
+
+    var counts = [0,0,0];
+    // var total_count = 0;
+
+       DATAq120.all.forEach(function(r) { 
+       if (r.COUNTRY==="China"){
+       ANSWERq120.forEach(function(m,i) {
+       if(r.Q30 === m){
+            console.log(r.Q30);
+            counts[i]+=1;
+        }
+        });
+     }
+        });
+  // d3.select("#span-base")
+  // .text(total_count);
+    
+   var yPos = d3.scale.linear()
+  // .domain([0,total_count])
+  .range([height-margin,margin]);
+
+   var height = d3.scale.linear()
+  // .domain([0,total_count])
+  .range([0,chartHeight]);
+
+   sel = svg.selectAll("g")
+  .data(counts);
+
+   sel.select(".bar")
+  .transition(2000)
+  .attr("y",function(d) { return yPos(d); })
+  .attr("height",function(d) { return height(d); });
+
+   sel.select(".value")
+  .transition(2000)
+  .attr("y",function(d) { return yPos(d) - 20; })
+//  .text(function(d) { return (Math.round(100*d/total_count))+"%"; });
+  .text(function(d) { return d; });
+
+}    
 /* depending on your browser and your local configuration,
    you may need to have a web server deliver the file data.csv
    just use the default python web server */
