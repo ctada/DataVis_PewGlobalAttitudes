@@ -17,7 +17,7 @@ text {
  .bar { 
      stroke: white;
      stroke-width: 2px;
-     fill: blue;
+     /*fill: blue;*/
  }
 
  .value {
@@ -59,20 +59,19 @@ span.top-align {
     <div>
         <div>
           <button type="button" class="btn btn-primary"id="button_q30">Will China replace US?</button>
-          <button type="button" class="btn btn-primary"id="button_q120">Is US enemy of China?</button>
+          <button type="button" class="btn btn-primary"id="button_q120">Relationship between China and the U.S?</button>
           <button type="button" class="btn btn-primary"id="button_q84">Moral Questions</button>
         </div>
     
     <span>
-	     <span class="top-align">Country:</span>
+	     <span class="top-align" id="country-title"></span>
 	     <select class="filter" id="select-country" multiple></select>
     </span>
     
     </div>
     
-    <div>
-    <svg id="viz" height="500" width="800" style="border: 1px solid grey;">
-    </svg>
+    <div> 
+    <svg id="viz" height="500" width= "1000" style="border: 1px solid grey;"> </svg>
     </div>
 
     <script>
@@ -81,80 +80,68 @@ span.top-align {
 window.addEventListener("load",run);
       
 function run () {
-
+    initializeWithData();
     button_q30.addEventListener("click",function() { runquestion30();});
     button_q120.addEventListener("click",function() { runquestion120(); });
-    button_q84.addEventListener("click",function() { runquestion84() });
+    button_q84.addEventListener("click",function() { runquestion84(); });
 }
 
 function runquestion30 (){
-  initializeView(ANSWERq30);
-   getDataRows(function(data) {
-    populateSelectors(data);
+  initializeView(GLOBAL.ANSWERq30);
   setupEventListeners(updateDataq30);
-  DATAq30.all = data;
-  console.log(DATAq30);
-  updateDataq30() });
+  updateDataq30();
 }
 
 function runquestion120(){
-  initializeView(ANSWERq120);
-   getDataRows(function(data) {
-    populateSelectors(data);
-  setupEventListeners(updateDataq120);
-  DATAq120.all = data;
-  // console.log(DATAq120);
-  updateDataq120() });
+  initializeView(GLOBAL.ANSWERq120);
+  updateDataq120();
 }
 
-function setupEventListeners (updatewhichdata) { 
+function runquestion84(){
+  initializeViewQ84();
+  setupEventListeners(updateDataQ84);
+  updateDataQ84();
+}
+
+function setupEventListeners (question) { 
     d3.selectAll("select.filter")
-	.on("change",updatewhichdata)
+	.on("change",question)
 }
 
-var DATAq30 = { all: []};
-var DATAq120 = { all: []};
-var ANSWERq30 = ["Has already replaced U.S.","Will eventually replace U.S.","Will never replace U.S."]
-var ANSWERq120 = ["More of a partner","More of an enemy","Neither"]
+function initializeWithData(){
+  getDataRows(function(data){
+    GLOBAL.data= data;
+    initializeTemplate(data);
+  });
+}
 
-function populateSelectors (data) { 
+function initializeTemplate(data) { 
     var country = d3.set();
     var q30 = d3.set();
-    var q120 = d3.set();
     data.forEach(function(r) {
       country.add(r.COUNTRY);
-	    q30.add(r.Q30);
-      q120.add(r.Q120);
     });
 
   d3.select("#select-country")
-	.selectAll("option")
-	.data(country.values()) //sort not needed
-	.enter()
-	.append("option")
-	.attr("value",function(d) { return d; })
-    .property("selected",true)
-	.text(function(d) { return d;});
-
-  d3.select("#select-Q30")
-	.selectAll("option")
-	.data(q30.values().sort)
-	.enter()
-	.append("option")
-	.attr("value",function(d) { return d; })
-        .property("selected",true)
-	.text(function(d) { return d;});
-
-  d3.select("#select-Q120")
   .selectAll("option")
-  .data(q30.values().sort)
+  .data(country.values()) 
   .enter()
   .append("option")
   .attr("value",function(d) { return d; })
-        .property("selected",true)
+    .property("selected",true)
   .text(function(d) { return d;});
 
 }
+
+var GLOBAL = { data : [],
+              ANSWERq30: ["Has already replaced U.S.",
+              "Will eventually replace U.S.",
+              "Will never replace U.S."],
+              ANSWERq120: ["One of cooperation ","One of hostility","Neither"],
+              ANSWERq84: ["Morally acceptable" ,"Not a moral issue" ,"Morally unacceptable"],
+              SubQuestion84: ["Q84A","Q84B","Q84C","Q84D","Q84E","Q84F","Q84G","Q84H"],
+              colors: ["#FF30D0","#3069FF","#FFC630"]
+            };
 
 function isSelected (selectorId,val) {
     return d3.select("#"+selectorId+" > option[value='"+val+"']")
@@ -162,155 +149,323 @@ function isSelected (selectorId,val) {
 }
 
 function initializeView (dataset) { 
+  var svg = d3.select("#viz");
+    // get the size of the SVG element
+  svg.selectAll("g").remove();
+  svg.selectAll("text").remove();
+  svg.selectAll("rect").remove();
+  var s = computeSizes(svg)
+   
+  document.getElementById("select-country").style.visibility = "visible";
+  if (dataset===GLOBAL.ANSWERq120){
+    document.getElementById("select-country").style.visibility = "hidden";
+  } 
 
+  var barWidth = s.chartWidth/(2*dataset.length-1);
+
+  svg.append("text")
+  .attr("class","title")
+  .attr("x",s.width/2)
+  .attr("y",s.margin/2)
+  .attr("dy","0.3em")
+  .style("text-anchor","middle");
+
+  sel = svg.selectAll("g")
+  .data(dataset)
+  .enter().append("g")
+   sel.append("rect")
+  .attr("class","bar")
+  .attr("x",function(d,i) { return s.margin+(i*2)*barWidth; })
+  .attr("y",s.height-s.margin)
+  .attr("width",barWidth)
+  .attr("height",0);
+    sel.append("text")
+  .attr("class","value")
+  .attr("x",function(d,i) { return s.margin+(i*2)*barWidth+barWidth/2; })
+  .attr("y",s.height-s.margin-20)
+  .attr("dy","0.3em")
+  .style("text-anchor","middle");
+    sel.append("text")
+  .attr("class","label")
+  .attr("x",function(d,i) { return s.margin+(i*2)*barWidth+barWidth/2; })
+  .attr("y",s.margin+s.chartHeight+50)
+  .attr("dy","0.1em")
+  .style("text-anchor","middle")
+  .text(function(d) { return d; });
+}
+
+function initializeViewQ84 () { 
     var svg = d3.select("#viz");
+    document.getElementById("select-country").style.visibility = "visible";
+    var s = computeSizes(svg)
+    var barWidth = s.chartWidth/(2*GLOBAL.SubQuestion84.length-1);
+    svg.selectAll("g").remove();
+    svg.selectAll("legend").remove();
+    
+    svg.append("text")
+    .attr("class","title")
+    .attr("x",s.width/2)
+    .attr("y",s.margin/2)
+    .attr("dy","0.3em")
+    .style("text-anchor","middle");
 
+    sel = svg.selectAll("g")
+    .data(GLOBAL.SubQuestion84)
+    .enter().append("g")
+    .attr("transform",
+        function(d,i) { return "translate("+(s.margin+(i*2)*barWidth)+",0)"; });
+
+    sel.append("rect")
+    .attr("class","bar")
+    .attr("x",0)
+    .attr("y",s.height-s.margin)
+    .attr("width",barWidth)
+    .attr("height",0);
+
+    sel.append("text")
+    .attr("class","value")
+    .attr("x",barWidth/2)
+    .attr("y",s.height-s.margin-20)
+    .attr("dy","0.3em")
+    .style("text-anchor","middle");
+
+    sel.append("text")
+    .attr("class","label")
+    .attr("x",barWidth/2)
+    .attr("y",s.margin+s.chartHeight+50)
+    .attr("dy","0.3em")
+    .style("text-anchor","middle")
+    .text(function(d) { return d; });
+
+    GLOBAL.ANSWERq84.forEach(function(d,i){
+      
+      svg.append("rect")
+      .attr("class","legend")
+      .attr("x", s.width-200)
+      .attr("y", 20+30*i)
+      .attr("width",15)
+      .attr("height",15)
+      .style("fill",GLOBAL.colors[i]);
+
+      svg.append("text")
+      .attr("class","legend")
+      .attr("x", s.width-100)
+      .attr("y", 25+30*i)
+      .attr("dy","0.3em")
+      .style("text-anchor","middle")
+      .text(d);
+
+      });
+}
+
+function computeSizes (svg) { 
     // get the size of the SVG element
     var height = svg.attr("height");
     var width = svg.attr("width");
+    var margin = 100;
 
     // the chart lives in the svg surrounded by a margin of 100px
-    var margin = 100;
-    var chartHeight = height - 2*margin;
-    var chartWidth = width - 2*margin;
-    var barWidth = chartWidth/(2*dataset.length-1);
 
-  svg.append("text")
-	.attr("class","title")
-	.attr("x",width/2)
- 	.attr("y",margin/2)
-	.attr("dy","0.3em")
-	.style("text-anchor","middle");
+    return {height:height,
+      width: width,
+      margin: margin,
+      chartHeight: height-2*margin,
+      chartWidth: width-2*margin}
+}    
 
-  sel = svg.selectAll("g")
-	.data(dataset)
-	.enter().append("g")
+function updateDataQ84 () { 
+  var svg = d3.select("#viz");
+  var s = computeSizes(svg);
+  var barWidth = s.chartWidth/(2*GLOBAL.SubQuestion84.length-1);
+  var curr_country = d3.select(".title");
+  svg.select(".title")
+  .text("Moral Questions");
 
-   sel.append("rect")
-	.attr("class","bar")
-	.attr("x",function(d,i) { return margin+(i*2)*barWidth; })
-	.attr("y",height-margin)
-	.attr("width",barWidth)
-	.attr("height",0);
+  var recnts = [{},{},{},{},{},{},{},{}];
+  var total_count = 0;
 
-    sel.append("text")
-	.attr("class","value")
-	.attr("x",function(d,i) { return margin+(i*2)*barWidth+barWidth/2; })
- 	.attr("y",height-margin-20)
-	.attr("dy","0.3em")
-	.style("text-anchor","middle");
+  GLOBAL.data.forEach(function(d){
+    if(isSelected("select-country", d.COUNTRY)){
+      total_count+=1;
+      GLOBAL.SubQuestion84.forEach(function(m,i)
+      {
+        GLOBAL.ANSWERq84.forEach(function(ma,ia){
+        if (d[m] === ma){
+          if (ma in recnts[i]) {
+          recnts[i][ma] += 1;} 
+          else {
+          recnts[i][ma] = 1;}
+        }
+      });
+      });
+    }
+  });
 
-    sel.append("text")
-	.attr("class","label")
-	.attr("x",function(d,i) { return margin+(i*2)*barWidth+barWidth/2; })
-	.attr("y",margin+chartHeight+50)
-	.attr("dy","0.3em")
-	.style("text-anchor","middle")
-	.text(function(d) { return d; });
+  recnts.forEach(function(c,i) { 
+  // first convert to an array of entries
+  var d = d3.entries(c);
+  // sort them
+  d.sort(function(a,b) { return d3.ascending(a.key,b.key); });
+  // then cumulate them
+  cumulate(d);
+  recnts[i] = d;
+    })
+
+
+  d3.select("#span-base")
+  .text(total_count)
+    
+   var yPos = d3.scale.linear()
+  .domain([0,total_count])
+  .range([s.height-s.margin,s.margin]);
+
+   var height = d3.scale.linear()
+  .domain([0,total_count])
+  .range([0,s.chartHeight]);
+
+  sel = svg.selectAll("g") 
+  .data(recnts);
+
+  sel.selectAll(".bar")
+  .data(function(d) {return d;})
+  .enter().append("rect")
+  .attr("class","bar")
+  .attr("y",yPos(0))
+  .attr("height",0)
+  .attr("width",barWidth);
+
+  sel.selectAll(".bar")
+  .transition()
+  .duration(1000)
+  .attr("y",function(d) { return yPos(d.cumulative+d.value); })
+  .attr("height",function(d) {return height(d.value); })
+  .style("fill",function(d,i) { return GLOBAL.colors[i]; });
+
+  sel.selectAll(".value")
+  .data(function(d) { return d;})
+  .enter().append("text")
+  .attr("class","value")
+  .attr("x",barWidth/2)
+  .attr("y",s.height-s.margin)
+  .attr("dy","0.3em")
+  .style("text-anchor","middle")
+
+  sel.selectAll(".value")
+  .style("fill","white")
+  .transition()
+  .duration(1000)
+  .attr("y",function(d) { return yPos(d.cumulative+d.value/2); })
+  .text(function(d) { return Math.round(100*d.value/total_count)+"%"; });
 }
 
+function cumulate (arr) {
+    var cumulative = 0;
+    for (var i=0; i<arr.length; i++) {
+  arr[i].cumulative = cumulative;
+  cumulative += arr[i].value;
+    }
+}
 
+function updateDataq30 () { 
+  var svg = d3.select("#viz");
+  var s= computeSizes(svg);
 
-function updateDataq30 (numquestion) { 
-    console.log("UPDATING DATA", numquestion);
-    var svg = d3.select("#viz");
-
-    var height = svg.attr("height");
-    var margin = 100;
-    var chartHeight = height - 2*margin;
-
-    svg.select(".title")
-	.text("Country:" );
-
-    var counts = [0,0,0];
-    var total_count = 0;
-
-       DATAq30.all.forEach(function(r) { 
-	     if (isSelected("select-country",r.COUNTRY)){
-	       total_count += 1;
-         ANSWERq30.forEach(function(m,i) {
-       if(r.Q30 === m){
-            counts[i]+=1;
-        }
-        });
-        }
-        });
+  var counts = [0,0,0];
+  var total_count = 0;
+  
+  GLOBAL.data.forEach(function(r) { 
+   if (isSelected("select-country",r.COUNTRY)){
+     total_count += 1;
+     GLOBAL.ANSWERq30.forEach(function(m,i) {
+   if(r.Q30 === m){
+        counts[i]+=1;
+    }
+    });
+    }
+    });
+  
   d3.select("#span-base")
-	.text(total_count);
+  .text(total_count);
     
    var yPos = d3.scale.linear()
-	.domain([0,total_count])
-	.range([height-margin,margin]);
+  .domain([0,total_count])
+  .range([s.height-s.margin,s.margin]);
 
    var height = d3.scale.linear()
-	.domain([0,total_count])
-	.range([0,chartHeight]);
+  .domain([0,total_count])
+  .range([0,s.chartHeight]);
 
-   sel = svg.selectAll("g")
-	.data(counts);
-
-   sel.select(".bar")
-	.transition(2000)
-	.attr("y",function(d) { return yPos(d); })
-	.attr("height",function(d) { return height(d); });
-
-   sel.select(".value")
-	.transition(2000)
-	.attr("y",function(d) { return yPos(d) - 20; })
-//	.text(function(d) { return (Math.round(100*d/total_count))+"%"; });
-	.text(function(d) { return d; });
-
-}		 
-
-function updateDataq120 () { 
-    console.log("UPDATING DATA");
-    var svg = d3.select("#viz");
-
-    var height = svg.attr("height");
-    var margin = 100;
-    var chartHeight = height - 2*margin;
-
-   svg.select(".title")
-   .text("Is US enemy of China?" );
-
-    var counts = [0,0,0];
-    // var total_count = 0;
-
-       DATAq120.all.forEach(function(r) { 
-       if (r.COUNTRY==="China"){
-       ANSWERq120.forEach(function(m,i) {
-       if(r.Q30 === m){
-            console.log(r.Q30);
-            counts[i]+=1;
-        }
-        });
-     }
-        });
-  // d3.select("#span-base")
-  // .text(total_count);
-    
-   var yPos = d3.scale.linear()
-  // .domain([0,total_count])
-  .range([height-margin,margin]);
-
-   var height = d3.scale.linear()
-  // .domain([0,total_count])
-  .range([0,chartHeight]);
-
+  svg.select(".title")
+  .text("Will China Replace US?");
+  
    sel = svg.selectAll("g")
   .data(counts);
 
+
+  sel.select(".bar")
+  .transition()
+  .duration(1000)
+  .attr("y",function(d) {return yPos(d); })
+  .attr("height",function(d) {return height(d); })
+  .attr("fill", function(d,i){return GLOBAL.colors[i];});
+
+  sel.select(".value")
+  .transition()
+  .duration(1000)
+  .attr("y",function(d) { return yPos(d) - 20; })
+  .text(function(d) { return d; });
+}		 
+
+function updateDataq120 () { 
+  var svg = d3.select("#viz");
+  var s= computeSizes(svg);
+
+  var counts = [0,0,0];
+  var total_count = 0;
+  
+  GLOBAL.data.forEach(function(r) { 
+    total_count +=1;
+     GLOBAL.ANSWERq120.forEach(function(m,i) {
+   if(r.Q120CHI === m){
+        counts[i]+=1;
+    }
+    });
+    });
+  
+  d3.select("#span-base")
+  .text(total_count);
+    
+  var yPos = d3.scale.linear()
+  .domain([0,total_count])
+  .range([s.height-s.margin,s.margin]);
+
+  var height = d3.scale.linear()
+  .domain([0,total_count])
+  .range([0,s.chartHeight]);
+
+  svg.select(".title")
+  .text("What do you think the relationship between China and the U.S is?");
+  
+  svg.append("text")
+  .text("(Survey was done only in China)")
+  .attr("x", s.chartWidth-50)
+  .attr("y", 80);
+
+  sel = svg.selectAll("g")
+  .data(counts);
+
    sel.select(".bar")
-  .transition(2000)
-  .attr("y",function(d) { return yPos(d); })
-  .attr("height",function(d) { return height(d); });
+  .transition()
+  .duration(1000)
+  .attr("y",function(d) {return yPos(d); })
+  .attr("height",function(d) {return height(d); })
+  .attr("fill", function(d,i){return GLOBAL.colors[i];})
 
    sel.select(".value")
-  .transition(2000)
+  .transition()
+  .duration(1000)
   .attr("y",function(d) { return yPos(d) - 20; })
-//  .text(function(d) { return (Math.round(100*d/total_count))+"%"; });
   .text(function(d) { return d; });
-
 }    
 /* depending on your browser and your local configuration,
    you may need to have a web server deliver the file data.csv
@@ -319,7 +474,6 @@ function updateDataq120 () {
 function getDataRows (f) {
     d3.csv("apac.csv",
 	   function(error,data) {
-               console.log(data);
 	       f(data);
 	   });
 }
