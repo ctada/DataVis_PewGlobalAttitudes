@@ -202,6 +202,7 @@ function initializeViewQ84 () {
     var barWidth = s.chartWidth/(2*GLOBAL.SubQuestion84.length-1);
     svg.selectAll("g").remove();
     svg.selectAll("legend").remove();
+    svg.selectAll("text").remove();
     
     svg.append("text")
     .attr("class","title")
