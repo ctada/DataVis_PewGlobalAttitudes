@@ -2,10 +2,12 @@
 <html>
   
   <head>
+    
     <meta charset="utf-8">
-    <title>Social Media Viz Demo</title>
+    <title>Project 3 | China's Problems</title>
 
     <!-- load D3 library -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <style>
@@ -13,12 +15,12 @@
 text {
     font-family: sans-serif;
 }
-
+/*
  .bar { 
      stroke: white;
      stroke-width: 2px;
      /*fill: blue;*/
- }
+ }*/
 
  .value {
      font-weight: bold;
@@ -61,6 +63,8 @@ span.top-align {
           <button type="button" class="btn btn-primary"id="button_q30">Will China replace US?</button>
           <button type="button" class="btn btn-primary"id="button_q120">Relationship between China and the U.S?</button>
           <button type="button" class="btn btn-primary"id="button_q84">Moral Questions</button>
+          <button type="button" class="btn btn-primary"id="button_q17">General</button>
+          <button type="button" class="btn btn-primary"id="button_q21">Economics</button>
         </div>
     
     <span>
@@ -72,18 +76,30 @@ span.top-align {
     
     <div> 
     <svg id="viz" height="700" width= "1000" style="border: 1px solid grey;"> </svg>
+
+    
+    <div>
+    </svg>
+
     </div>
 
     <script>
 
-      
 window.addEventListener("load",run);
       
 function run () {
+  
     initializeWithData();
     button_q30.addEventListener("click",function() { runquestion30();});
     button_q120.addEventListener("click",function() { runquestion120(); });
     button_q84.addEventListener("click",function() { runquestion84(); });
+
+    button_q17.addEventListener("click",function() 
+      {processData('17');
+      });
+    button_q21.addEventListener("click",function() 
+      { processData('21')
+      });
 }
 
 function runquestion30 (){
@@ -111,6 +127,7 @@ function setupEventListeners (question) {
 function initializeWithData(){
   getDataRows(function(data){
     GLOBAL.data= data;
+    processData();
     initializeTemplate(data);
   });
 }
@@ -471,13 +488,143 @@ function updateDataq120 () {
   .attr("y",function(d) { return yPos(d) - 20; })
   .text(function(d) { return d; });
 }    
+
+function processData (q) { 
+     document.getElementById("select-country").style.visibility = "hidden";
+
+    
+    // crunch data
+    // tabulate totals for response
+    if (q==="17"){
+       var COLUMN = 
+     {"Air Pollution":"Q17A",
+      "Corrupt Business People":"Q17B",
+      "Conditions for Workers":"Q17C",
+      "Unemployment":"Q17D",
+      "Safety of Food":"Q17E", 
+      "Water Pollution":"Q17F",
+      "Quality of Manufactured Goods":"Q17G",
+      "Health care":"Q17H",
+      "Education":"Q17I",
+      "Crime":"Q17J", 
+      "Corrupt Officials":"Q17K",
+      "Old age Insurance":"Q17L",
+      "Safety of Medicine":"Q17M", 
+      "Traffic":"Q17N",
+      "Electricity Shortages":"Q17O"};
+      console.log('17');
+    }
+    if (q==="21"){
+       var COLUMN = 
+     {"Rising prices":"Q21A",
+      "Lack of Employment Opportunities":"Q21B",
+      "Gap between Rich and Poor":"Q21C",
+      "Public Debt":"Q21D"};
+      console.log("21");
+    }
+   
+
+    var problem_score = [];
+    for (var i in d3.keys(COLUMN)){
+      problem_score.push(0);
+    }
+    console.log(problem_score);
+    var counts = [0,0,0,0]; //veryCt, modCt, smallCt, notCt
+    var total_count = 0; //should be 3226 respondents * 15 issues, not counting "Don't Know"s, etc. 
+    GLOBAL.data.forEach(function(r) { 
+	    d3.keys(COLUMN).forEach(function(m,i) {
+  		if (r[COLUMN[m]]==="Very big problem") { 
+		    problem_score[i] += 4;
+        counts[0] +=1;
+        total_count += 1;
+  		}
+      else if (r[COLUMN[m]]==="Moderately big problem"){
+        problem_score[i] += 3;
+        counts[1] +=1;
+        total_count += 1;
+      }
+      else if (r[COLUMN[m]]==="Small problem"){
+        problem_score[i] += 2;
+        counts[2] +=1;
+        total_count += 1;
+      }
+      else if (r[COLUMN[m]]==="Not a problem at all"){
+        problem_score[i] += 1;
+        counts[3] +=1;
+        total_count += 1;
+      }
+	    });
+	});
+//   console.log(total_count, problem_score);
+//   return [total_count, problem_score];
+// }
+
+// function createList(q,total_count, problem_score){
+    var svg = d3.select("#viz");
+
+    svg.selectAll("g").remove();
+    svg.selectAll("legend").remove();
+    svg.selectAll("text").remove();
+
+    console.log("#viz"+q)
+    // get the size of the SVG element
+    var height = svg.attr("height");
+    var width = svg.attr("width");
+
+    var margin = 20;
+    var chartHeight = height - 2*margin;
+    var chartWidth = width - 2*margin;
+    var padding = 5; 
+    var barWidth = chartWidth;
+    var maxBarHeight = parseInt(chartHeight/problem_score.length); 
+
+    yPos = margin; // start list of topics at top
+
+  // creating group for button press, bind data
+  changing_bars = svg.selectAll("g")
+    .data(problem_score)
+    .enter().append("g")
+  // creating bars tied to the data
+
+  var color = d3.scale.linear() //scale color of problem based on spectrum of minimum problem_score to maximum 
+    .domain([1*total_count/problem_score.length, 4*total_count/problem_score.length]) // min: 1*total_count/problem_score.length; max = 4*total_count/problem_score.length
+    .range(["lightgrey", "red"]);
+
+  var barHeight = d3.scale.linear()
+    .domain([d3.min(problem_score), d3.max(problem_score)]) //scale from problem_score minimum to maximum 
+    .range([10,maxBarHeight]);
+
+  changing_bars.append('rect')
+      .attr("class","bar")
+      .attr('x', margin)
+      .attr('y', function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return yPos0;})
+      .attr('width', barWidth)
+      .attr('height', function(d, i){return barHeight(d);})
+      .attr('fill', function(d){return color(d);}); 
+  
+  yPos = margin; 
+    // creating and styling text labels
+  changing_bars.append("text")
+    .attr("class","value")
+    .text(function(d,i){return d3.keys(COLUMN)[i];})
+    .attr("x",function(d, i){return chartWidth/2;})
+    .attr("y", function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return .5*barHeight(d) + yPos0;})
+    .attr("dy", "0.3em")
+    .style("text-anchor","middle")
+    .style("font-family","sans-serif")
+    .style("font-weight","bold")
+    .style("font-size","12px")
+    .style("fill", "white");
+}		 
+
 /* depending on your browser and your local configuration,
    you may need to have a web server deliver the file data.csv
    just use the default python web server */
 
 function getDataRows (f) {
-    d3.csv("apac.csv",
+    d3.csv("http://localhost:8000/data.csv",
 	   function(error,data) {
+               //console.log(data);
 	       f(data);
 	   });
 }
