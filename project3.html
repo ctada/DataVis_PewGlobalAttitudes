@@ -535,22 +535,22 @@ function processData (q) {
 	    d3.keys(COLUMN).forEach(function(m,i) {
   		if (r[COLUMN[m]]==="Very big problem") { 
 		    problem_score[i] += 4;
-        counts[0] +=1;
+        counts[i][0] +=1;
         total_count += 1;
   		}
       else if (r[COLUMN[m]]==="Moderately big problem"){
         problem_score[i] += 3;
-        counts[1] +=1;
+        counts[i][1] +=1;
         total_count += 1;
       }
       else if (r[COLUMN[m]]==="Small problem"){
         problem_score[i] += 2;
-        counts[2] +=1;
+        counts[i][2] +=1;
         total_count += 1;
       }
       else if (r[COLUMN[m]]==="Not a problem at all"){
         problem_score[i] += 1;
-        counts[3] +=1;
+        counts[i][3] +=1;
         total_count += 1;
       }
 	    });
@@ -589,6 +589,7 @@ function processData (q) {
     .domain([0, d3.sum(problem_score)]) //MAP AS PERCENTAGE OF CHARTHEIGHT
     .range([0, chartHeight-padding*problem_score.length]); 
 
+    //list bars
   changing_bars.append('rect')
       .attr("class","bar")
       .attr('x', margin)
@@ -611,21 +612,31 @@ function processData (q) {
     .style("font-size","12px")
     .style("fill", "white");
 
-  xPos = margin;
+    //subdivision bars (refining visualization)
+  var bars = changing_bars.selectAll(".bar")
+  .data(function(d) { return d;});
+    
   var subBar = d3.scale.linear()
-    .domain([0, total_count/problem_score.length])
+    .domain([0, 1])
     .range([0,barWidth]);
 
- for (var i= 0; i<4; i++){
-  changing_bars.append("rect")
-    .data(counts)
-    .enter().append("sub")
-    .attr('x', function(d,i){xPos0= xPos; xPos = xPos0 + subBar(d); return xPos0;})
-    .attr('y', function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(problem_score[i]) + padding; return yPos0;})
-    .attr('width', barWidth)
-    .attr('height', function(d, i){return barHeight(problem_score[i]);})
-    .attr('fill', "white");
-    .style("opacity", ""+(i+1)*0.2) ;
+  xPos0 = [];
+  xPos = [];
+  for (var i in d3.keys(COLUMN)){
+      xPos0.push(margin);
+      xPos.push(margin);
+    }
+
+  for (var idx= 0; idx<4; idx++){
+    
+    yPos = margin;
+    changing_bars.append("rect")
+      .attr('x', function(d,i){xPos0[i] = xPos[i]; xPos[i] = xPos0[i] + subBar(counts[i][idx]/d3.sum(counts[i])); return xPos0[i];})
+      .attr('y', function(d){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return yPos0;})
+      .attr('width', function(d,i){return subBar(counts[i][idx]/d3.sum(counts[i]));})
+      .attr('height', function(d, i){return barHeight(d);})
+      .attr('fill', "white")
+      .style("opacity", (idx+1)*.2);
  }
   
 }		 
