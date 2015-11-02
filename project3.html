@@ -71,7 +71,7 @@ span.top-align {
     </div>
     
     <div> 
-    <svg id="viz" height="500" width= "1000" style="border: 1px solid grey;"> </svg>
+    <svg id="viz" height="700" width= "1000" style="border: 1px solid grey;"> </svg>
     </div>
 
     <script>
@@ -137,8 +137,9 @@ var GLOBAL = { data : [],
               ANSWERq30: ["Has already replaced U.S.",
               "Will eventually replace U.S.",
               "Will never replace U.S."],
+              Question84: ["Using contraceptives" , "Getting a divorce", "Having an abortion" ,"Homosexuality","Drinking alcohol", "Extra marital affair","Gambling","Sex between unmarried adults"],
               ANSWERq120: ["One of cooperation ","One of hostility","Neither"],
-              ANSWERq84: ["Morally acceptable" ,"Not a moral issue" ,"Morally unacceptable"],
+              ANSWERq84: ["Morally acceptable","Morally unacceptable","Not a moral issue"],
               SubQuestion84: ["Q84A","Q84B","Q84C","Q84D","Q84E","Q84F","Q84G","Q84H"],
               colors: ["#FF30D0","#3069FF","#FFC630"]
             };
@@ -179,7 +180,7 @@ function initializeView (dataset) {
   .attr("y",s.height-s.margin)
   .attr("width",barWidth)
   .attr("height",0);
-    sel.append("text")
+  sel.append("text")
   .attr("class","value")
   .attr("x",function(d,i) { return s.margin+(i*2)*barWidth+barWidth/2; })
   .attr("y",s.height-s.margin-20)
@@ -235,7 +236,8 @@ function initializeViewQ84 () {
     .attr("y",s.margin+s.chartHeight+50)
     .attr("dy","0.3em")
     .style("text-anchor","middle")
-    .text(function(d) { return d; });
+    .text(function(d,i) { return GLOBAL.Question84[i]; })
+    .style("font-size","11px");
 
     GLOBAL.ANSWERq84.forEach(function(d,i){
       
@@ -349,6 +351,7 @@ function updateDataQ84 () {
   .attr("y",s.height-s.margin)
   .attr("dy","0.3em")
   .style("text-anchor","middle")
+  .style("font-size","13px");
 
   sel.selectAll(".value")
   .style("fill","white")
