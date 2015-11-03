@@ -575,11 +575,44 @@ function processData (q) {
 
     yPos = margin; // start list of topics at top
 
+    var psizes = ["Very Big Problem", "Moderately Big Problem", "Small Problem", "Not a Problem at all"];
   // creating group for button press, bind data
   changing_bars = svg.selectAll("g")
     .data(problem_score)
     .enter().append("g")
-  // creating bars tied to the data
+    .on("mouseenter", function(d,i){
+        var xPos = margin; 
+        var xPos0= margin; 
+        var bar = d3.select(this).select(".bar");
+         for (var idx= 0; idx<4; idx++){
+            xPos0 = xPos; 
+            xPos = xPos0 + subBar(counts[i][idx]/d3.sum(counts[i]));
+            d3.select(this).append("rect")
+              .attr('class', 'breakdown')
+              .attr('x', xPos0)
+              .attr('y', bar.attr("y"))
+              .attr('width', subBar(counts[i][idx]/d3.sum(counts[i])))
+              .attr('height', barHeight(d))
+              .attr('fill', "white")
+              .style("opacity", (idx+1)*.2);
+
+            d3.select(this).append("text")
+              .attr('class', 'breakdown')
+              .text(psizes[idx])
+              .attr('x', xPos0 + .5*subBar(counts[i][idx]/d3.sum(counts[i])))
+              .attr('y', +bar.attr("y")+.9*barHeight(d))
+              .attr("dy", "0.3em")
+              .style("text-anchor","middle")
+              .style("font-family","sans-serif")
+              .style("font-weight","bold")
+              .style("font-size","10px")
+              .style("fill", "black");
+         }
+      })
+      .on("mouseleave", function(d,i){
+        d3.selectAll(".breakdown")
+        .remove();
+      }); 
 
   var color = d3.scale.linear() //scale color of problem based on spectrum of minimum problem_score to maximum 
     .domain([d3.min(problem_score), d3.max(problem_score)]) //relative ranking: scale from problem_score minimum to maximum ; for absolute ranking; min: 1*total_count/problem_score.length; max = 4*total_count/problem_score.length
@@ -589,33 +622,7 @@ function processData (q) {
     .domain([0, d3.sum(problem_score)]) //MAP AS PERCENTAGE OF CHARTHEIGHT
     .range([0, chartHeight-padding*problem_score.length]); 
 
-    //list bars
-  changing_bars.append('rect')
-      .attr("class","bar")
-      .attr('x', margin)
-      .attr('y', function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return yPos0;})
-      .attr('width', barWidth)
-      .attr('height', function(d, i){return barHeight(d);})
-      .attr('fill', function(d){return color(d);}); 
-  
-  yPos = margin; 
-    // creating and styling text labels
-  changing_bars.append("text")
-    .attr("class","value")
-    .text(function(d,i){return d3.keys(COLUMN)[i] + ", Score: " + d3.format(".2f")(problem_score[i]/(total_count/problem_score.length)) +" / 4";})
-    .attr("x",function(d, i){return chartWidth/2;})
-    .attr("y", function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return .5*barHeight(d) + yPos0;})
-    .attr("dy", "0.3em")
-    .style("text-anchor","middle")
-    .style("font-family","sans-serif")
-    .style("font-weight","bold")
-    .style("font-size","12px")
-    .style("fill", "white");
-
-    //subdivision bars (refining visualization)
-  var bars = changing_bars.selectAll(".bar")
-  .data(function(d) { return d;});
-    
+  //list bars
   var subBar = d3.scale.linear()
     .domain([0, 1])
     .range([0,barWidth]);
@@ -627,50 +634,32 @@ function processData (q) {
       xPos.push(margin);
     }
 
-  for (var idx= 0; idx<4; idx++){
-    
-    yPos = margin;
-    changing_bars.append("rect")
-      .attr('x', function(d,i){xPos0[i] = xPos[i]; xPos[i] = xPos0[i] + subBar(counts[i][idx]/d3.sum(counts[i])); return xPos0[i];})
-      .attr('y', function(d){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return yPos0;})
-      .attr('width', function(d,i){return subBar(counts[i][idx]/d3.sum(counts[i]));})
+  // creating bars tied to the data
+  changing_bars.append('rect')
+      .attr("class","bar")
+      .attr('x', margin)
+      .attr('y', function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return yPos0;})
+      .attr('width', barWidth)
       .attr('height', function(d, i){return barHeight(d);})
-      .attr('fill', "white")
-      .style("opacity", (idx+1)*.2);
- }
+      .attr('fill', function(d){return color(d);}); 
+  
+  yPos = margin; 
+  //creating and styling text labels
+ changing_bars.append("text")
+    .attr("class","value")
+    .text(function(d,i){return d3.keys(COLUMN)[i] + ", Score: " + d3.format(".2f")(problem_score[i]/(total_count/problem_score.length)) +" / 4";})
+    .attr("x",function(d, i){return chartWidth/2;})
+    .attr("y", function(d,i){yPos0= yPos; yPos=yPos0+ barHeight(d) + padding; return .5*barHeight(d) + yPos0;})
+    .attr("dy", "0.3em")
+    .style("text-anchor","middle")
+    .style("font-family","sans-serif")
+    .style("font-weight","bold")
+    .style("font-size","12px")
+    .style("fill", "white");
+
   
 }		 
 
-/*
-bars.enter().append("rect")
-  .attr("class","bar")
-  .style("fill",function(d,i) { return colors[d.key]; })
-  .attr("y",yPos(0))
-  .attr("height",0)
-  .attr("width",barWidth)
-  .on("mouseover",function(d,i) { 
-      this.style.fill = "#772310"; 
-      var bar = d3.select(this);
-      showToolTip(+bar.attr("x")+bar.attr("width")/2,
-      +bar.attr("y")-TOOLTIP.height/2-5,
-      m+" ("+d.key+")",
-      d.value);
-      // dirty hack!
-      d3.selectAll(".tooltip")
-    .attr("transform",
-          d3.select(this.parentNode).attr("transform"));
-  })
-  .on("mouseout",function(d,i) { 
-      this.style.fill = colors[d.key]; 
-      hideToolTip();
-  });
-    bars.exit().remove()
-
-    sel.selectAll(".bar")
-  .transition()
-  .duration(1000)
-  .attr("y",function(d) { return yPos(d.cumulative+d.value); })
-*/
 
 /* depending on your browser and your local configuration,
    you may need to have a web server deliver the file data.csv
